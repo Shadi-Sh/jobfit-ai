@@ -1,0 +1,106 @@
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.section {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section h2 {
+  margin-top: 0;
+}
+
+.placeholder {
+  color: #888;
+}
+
+.text-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.error {
+  color: #b00020;
+}
+
+.confirmation {
+  color: #1a7f37;
+  font-weight: 500;
+}
+
+.fit-score {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.match-list {
+  list-style: none;
+  padding: 0;
+}
+
+.match-item {
+  border-top: 1px solid #eee;
+  padding: 0.75rem 0;
+}
+
+.match-name {
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.importance {
+  font-weight: 400;
+  color: #666;
+}
+
+.match-status,
+.match-evidence,
+.match-explanation {
+  margin: 0.15rem 0;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.history-item {
+  border-top: 1px solid #eee;
+}
+
+.history-item-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  padding: 0.6rem 0.25rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.history-item-button:hover {
+  background-color: #f5f5f5;
+}
+
+.history-job-description {
+  font-weight: 600;
+}
+
+.history-meta {
+  color: #666;
+  font-size: 0.9rem;
+}
