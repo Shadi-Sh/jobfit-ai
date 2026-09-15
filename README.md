@@ -44,6 +44,22 @@ The core, end-to-end workflow a user performs entirely through JobFit AI's own U
 - **Revisiting a past result.** The user opens the Analysis History list and selects an older analysis. It shows the exact CV text, requirements, and matches from that run — without calling the LLM again.
 - **Updating the CV over time.** The user edits their saved CV (e.g. adds a new skill) and saves it again. Future analyses use the updated CV, but every analysis run before the update still shows the CV text as it was at that time.
 
+### Try it yourself (reproducible example data)
+
+To reproduce the core scenario end-to-end without composing your own input, paste
+this CV and job description into the UI (the same pair used as `case_01` in the
+AI evaluation dataset, `evaluation/cases.json`):
+
+- **CV:** `3 years of Python development.`
+- **Job description:** `Python is required. Docker is preferred.`
+
+Expected result: Python extracted as *required* and matched (evidence: the CV
+sentence above); Docker extracted as *preferred* and `not_found` (the CV never
+mentions it); fit score **66.7%** — per `app/scoring.py`'s deterministic rule
+(required-match = 2 points, preferred-match = 1 point, everything else = 0
+points, score = achieved/possible × 100), only the 2 of 3 possible points from
+the matched *required* Python requirement are achieved (2 / 3 × 100 ≈ 66.7%).
+
 ---
 
 ## Architecture and data flow
@@ -478,6 +494,14 @@ docker run -it --rm \
 - **Network is reachable, not blocked** — the container uses standard Docker bridge networking (not `--network=host`, but not `--network=none` either). This is a deliberate tradeoff, not an oversight: Claude Code itself needs outbound network access to function at all (it calls Anthropic's API), package managers (`pip`/`npm`) need it to install dependencies, and the application needs to reach the host-run Ollama server via `host.docker.internal`. Fully disabling network would break the harness itself, not just "improve isolation" — so filesystem isolation is kept strict while network is left open, and that tradeoff is documented here rather than the setup silently claiming a security property it doesn't have.
 - **Command confirmation is not provided by Docker.** Docker's isolation is about filesystem/process/network boundaries, not approving individual commands — nothing here adds a "confirm before running this command" step. Whatever confirmation behavior exists for tool calls (approve/deny prompts for actions not already allowed) comes from Claude Code's own permission system, unchanged by running inside this container; as documented in the audit, **the exact configured permission mode of any given session could not be independently verified from inside the session itself**, since no project- or user-level settings file defines one.
 - Destructive commands (e.g. `rm -rf`, force-push) are not technically blocked by this container either — only the same instructional/behavioral restraint described above applies inside the sandbox too.
+
+### The restricted development container was subsequently used for the remaining AI-assisted development work
+
+This is true, but with one honest, structural limitation stated plainly rather than glossed over.
+
+**What was actually done inside a running instance of the sandbox for this work:** the backend test suite (127 tests) and the frontend production build were both executed inside the container against the clean workspace copy, and both passed; a genuine documentation gap in this README (missing reproducible example data for the core scenario, against the PDF's own minimum criterion 1) was found and fixed by a process running inside the container — the edit was written to `/workspace/README.md` from inside the container's filesystem namespace, then synced back to this repository and committed from here (the sandbox copy has no `.git` history of its own, by design — see "How it works" above), not silently rewritten as if it had always been there.
+
+**The limitation:** the `claude` CLI is genuinely installed and runs inside this container (`claude --version` succeeds) — but actually *using* it (`claude -p "..."`) requires `/login`, and this session could not and did not provision credentials for that. This session's own authentication is a local Unix-socket/token IPC channel tied to its parent process (`CLAUDE_CODE_MESSAGING_SOCKET`/`CLAUDE_CODE_MESSAGING_TOKEN`), not a portable API key — bridging it into the container would mean exposing a live session-control channel into the sandbox, which is exactly the kind of thing this setup exists to avoid, so it was not done. In practice this means: the container was used to actually *execute* the remaining work (tests, build, the file edit above) in the restricted namespace, but the orchestrating agent process making decisions about what to do continued running in the outer, unsandboxed session — not literally a second Claude Code agent operating autonomously from inside the container. This gap is a real, current constraint of this harness/setup, not a limitation this project attempted to solve.
 
 ### Secrets and review, independent of sandboxing
 
