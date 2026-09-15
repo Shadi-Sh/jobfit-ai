@@ -1,0 +1,14 @@
+{
+  "name": "jobfit-ai-dev-sandbox",
+  "build": {
+    "dockerfile": "../Dockerfile.dev",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspace",
+  "remoteUser": "devuser",
+  "runArgs": [
+    "--cap-drop=ALL",
+    "--security-opt=no-new-privileges"
+  ],
+  "mounts": []
+}

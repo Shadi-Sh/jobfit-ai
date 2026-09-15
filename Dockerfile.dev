@@ -1,0 +1,41 @@
+# Development-only container for running the Claude Code AI agent harness
+# (and normal dev tooling) against this project in a restricted environment.
+#
+# This is NOT the product image — see ./Dockerfile for that. This image is
+# only ever bind-mounted with a *clean copy* of the project workspace
+# (see scripts/create_dev_sandbox_workspace.sh and .devcontainer/README.md),
+# never the live repository directory, so the real local .env / SQLite file
+# are never present inside it in the first place.
+
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        git \
+        ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Best-effort install of the published Claude Code CLI, for running the
+# agent harness itself inside this container. NOTE (documented honestly,
+# see README.md): the exact install/invocation mechanism of the Claude Code
+# session that did the work in this repository could not be identified from
+# the host machine (no `claude` binary or global npm package was found on
+# it), so this is the standard documented install command, not a verified
+# reproduction of that session's own setup.
+RUN npm install -g @anthropic-ai/claude-code
+
+# Non-root user. UID/GID default to 1000, overridable at build time to match
+# the host user so bind-mounted files stay conveniently editable.
+ARG USERNAME=devuser
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupadd --gid "$USER_GID" "$USERNAME" \
+    && useradd --uid "$USER_UID" --gid "$USER_GID" --create-home --shell /bin/bash "$USERNAME"
+
+WORKDIR /workspace
+RUN chown "$USERNAME:$USERNAME" /workspace
+USER $USERNAME
+
+CMD ["bash"]
