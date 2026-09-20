@@ -6,6 +6,32 @@ import './App.css'
 const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:8000' : ''
 const CV_ID_STORAGE_KEY = 'jobfit.cvId'
 
+// Purely presentational: buckets the deterministic fit score into a color band
+// so it's easier to scan. Does not change the score's value or meaning.
+function getFitScoreLevel(score) {
+  if (score >= 70) return 'high'
+  if (score >= 40) return 'medium'
+  return 'low'
+}
+
+// Purely presentational: the API returns the exact float (e.g. 66.66666666666666);
+// this only rounds it for display, it does not change the underlying value.
+function formatFitScore(score) {
+  return score.toFixed(1)
+}
+
+// Purely presentational: the API returns a raw ISO timestamp; this only
+// formats it for display, it does not change the underlying stored value.
+function formatTimestamp(isoString) {
+  return new Date(isoString).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function App() {
   const [cvText, setCvText] = useState('')
   const [cvId, setCvId] = useState(null)
@@ -148,74 +174,112 @@ function App() {
 
   return (
     <div className="app">
-      <h1>JobFit AI</h1>
+      <header className="app-header">
+        <h1>JobFit AI</h1>
+        <p className="app-subtitle">AI-assisted CV-to-job-description fit analysis</p>
+      </header>
 
-      <section className="section">
-        <h2>CV</h2>
-        <textarea
-          className="text-input"
-          value={cvText}
-          onChange={(event) => setCvText(event.target.value)}
-          placeholder="Paste your CV text here..."
-          rows={10}
-        />
-        <div>
-          <button onClick={handleSaveCv} disabled={isSavingCv || !cvText.trim()}>
-            {isSavingCv ? 'Saving...' : 'Save CV'}
-          </button>
-        </div>
-        {cvError && <p className="error">{cvError}</p>}
-        {cvId !== null && <p className="confirmation">CV saved with ID: {cvId}</p>}
-      </section>
+      <div className="input-grid">
+        <section className="section">
+          <h2>CV</h2>
+          <textarea
+            className="text-input"
+            value={cvText}
+            onChange={(event) => setCvText(event.target.value)}
+            placeholder="Paste your CV text here..."
+            rows={10}
+          />
+          <div className="actions">
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={handleSaveCv}
+              disabled={isSavingCv || !cvText.trim()}
+            >
+              {isSavingCv ? 'Saving…' : 'Save CV'}
+            </button>
+            {cvId !== null && <span className="state-message state-message-success">Saved (ID {cvId})</span>}
+          </div>
+          {cvError && <p className="state-message state-message-error">{cvError}</p>}
+        </section>
 
-      <section className="section">
-        <h2>Job Description</h2>
-        <textarea
-          className="text-input"
-          value={jobDescription}
-          onChange={(event) => setJobDescription(event.target.value)}
-          placeholder="Paste the job description here..."
-          rows={10}
-        />
-        <div>
-          <button
-            onClick={handleAnalyze}
-            disabled={isAnalyzing || !jobDescription.trim() || cvId === null}
-          >
-            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-          </button>
-        </div>
-        {cvId === null && (
-          <p className="placeholder">Save a CV first to enable analysis.</p>
-        )}
-        {analysisError && <p className="error">{analysisError}</p>}
-      </section>
+        <section className="section">
+          <h2>Job Description</h2>
+          <textarea
+            className="text-input"
+            value={jobDescription}
+            onChange={(event) => setJobDescription(event.target.value)}
+            placeholder="Paste the job description here..."
+            rows={10}
+          />
+          <div className="actions">
+            <button
+              type="button"
+              className="button button-primary"
+              onClick={handleAnalyze}
+              disabled={isAnalyzing || !jobDescription.trim() || cvId === null}
+            >
+              {isAnalyzing ? 'Analyzing…' : 'Analyze'}
+            </button>
+            {cvId === null && (
+              <span className="state-message state-message-muted">Save a CV first to enable analysis</span>
+            )}
+          </div>
+          {analysisError && <p className="state-message state-message-error">{analysisError}</p>}
+        </section>
+      </div>
 
       <section className="section">
         <h2>Analysis Result</h2>
-        {!analysisResult && <p className="placeholder">The analysis result will be shown here.</p>}
+        {!analysisResult && (
+          <p className="state-message state-message-muted">The analysis result will be shown here.</p>
+        )}
         {analysisResult && (
           <div className="analysis-result">
-            <div className="analysis-source">
-              <p className="analysis-source-label">CV used for this analysis</p>
-              <pre className="analysis-source-text">{analysisResult.cv_text_snapshot}</pre>
+            <div className={`fit-score-card fit-score-card--${getFitScoreLevel(analysisResult.fit_score)}`}>
+              <div className="fit-score-value">{formatFitScore(analysisResult.fit_score)}%</div>
+              <div className="fit-score-meta">
+                <p className="fit-score-label">Fit score</p>
+                <p className="fit-score-caption">
+                  Deterministic score based on matched requirements — not a probability or hiring
+                  recommendation.
+                </p>
+              </div>
             </div>
-            <div className="analysis-source">
-              <p className="analysis-source-label">Job description used for this analysis</p>
-              <pre className="analysis-source-text">{analysisResult.job_description}</pre>
+
+            <div className="source-grid">
+              <div className="analysis-source">
+                <p className="analysis-source-label">CV used for this analysis</p>
+                <pre className="analysis-source-text">{analysisResult.cv_text_snapshot}</pre>
+              </div>
+              <div className="analysis-source">
+                <p className="analysis-source-label">Job description used for this analysis</p>
+                <pre className="analysis-source-text">{analysisResult.job_description}</pre>
+              </div>
             </div>
-            <p className="fit-score">Fit score: {analysisResult.fit_score}%</p>
+
             <ul className="match-list">
               {analysisResult.matches.map((match) => (
                 <li key={match.requirement.name} className="match-item">
-                  <p className="match-name">
-                    {match.requirement.name}{' '}
-                    <span className="importance">({match.requirement.importance})</span>
-                  </p>
-                  <p className="match-status">Status: {match.status}</p>
-                  <p className="match-evidence">
-                    CV evidence: {match.cv_evidence ?? 'None'}
-                  </p>
+                  <div className="match-header">
+                    <p className="match-name">
+                      {match.requirement.name}
+                      <span className="importance-tag">{match.requirement.importance}</span>
+                    </p>
+                    <span className={`status-badge status-badge--${match.status}`}>
+                      {match.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                  <div className="match-evidence-block">
+                    <p className="match-evidence-label">Evidence</p>
+                    {match.cv_evidence ? (
+                      <blockquote className="match-evidence">{match.cv_evidence}</blockquote>
+                    ) : (
+                      <p className="match-evidence match-evidence--empty">
+                        No supporting evidence found in the CV.
+                      </p>
+                    )}
+                  </div>
                   <p className="match-explanation">{match.explanation}</p>
                 </li>
               ))}
@@ -226,10 +290,10 @@ function App() {
 
       <section className="section">
         <h2>Analysis History</h2>
-        {isLoadingHistory && <p className="placeholder">Loading history...</p>}
-        {historyError && <p className="error">{historyError}</p>}
+        {isLoadingHistory && <p className="state-message state-message-muted">Loading history…</p>}
+        {historyError && <p className="state-message state-message-error">{historyError}</p>}
         {!isLoadingHistory && analysisHistory.length === 0 && (
-          <p className="placeholder">No analyses yet.</p>
+          <p className="state-message state-message-muted">No analyses yet.</p>
         )}
         {analysisHistory.length > 0 && (
           <ul className="history-list">
@@ -240,11 +304,10 @@ function App() {
                   className="history-item-button"
                   onClick={() => handleSelectHistoryItem(item.id)}
                 >
-                  <span className="history-job-description">
-                    #{item.id} — {item.job_description}
-                  </span>
+                  <span className="history-job-description">#{item.id} — {item.job_description}</span>
                   <span className="history-meta">
-                    Fit score: {item.fit_score}% · {item.created_at}
+                    <span className="history-score">{formatFitScore(item.fit_score)}%</span>
+                    <span className="history-date">{formatTimestamp(item.created_at)}</span>
                   </span>
                 </button>
               </li>
