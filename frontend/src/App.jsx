@@ -196,6 +196,14 @@ function App() {
         {!analysisResult && <p className="placeholder">The analysis result will be shown here.</p>}
         {analysisResult && (
           <div className="analysis-result">
+            <div className="analysis-source">
+              <p className="analysis-source-label">CV used for this analysis</p>
+              <pre className="analysis-source-text">{analysisResult.cv_text_snapshot}</pre>
+            </div>
+            <div className="analysis-source">
+              <p className="analysis-source-label">Job description used for this analysis</p>
+              <pre className="analysis-source-text">{analysisResult.job_description}</pre>
+            </div>
             <p className="fit-score">Fit score: {analysisResult.fit_score}%</p>
             <ul className="match-list">
               {analysisResult.matches.map((match) => (

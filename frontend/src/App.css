@@ -37,6 +37,26 @@
   font-weight: 500;
 }
 
+.analysis-source {
+  margin-bottom: 1rem;
+}
+
+.analysis-source-label {
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+
+.analysis-source-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin: 0;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 .fit-score {
   font-size: 1.2rem;
   font-weight: 600;
